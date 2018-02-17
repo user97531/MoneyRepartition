@@ -44,12 +44,24 @@ namespace PythonBackup
         }
 
         //This is not a real gaussian distribution just an approximation
-        public double DrawRand()
+        public double DrawRand(double m = 0)
         {
             //Create 2 random numbers (uniform distribution) in (0;1]
             //It's the same as rand.NextDouble() but be don't want 0 (1 is accepted) because of the ln (noted Log)
-            double x1 = 1 - rand.NextDouble();
             double x2 = 1 - rand.NextDouble();
+			double X = (m-mu)/sig;
+			double K = Math.Sin(2 * Math.PI * x2);
+			double r = Math.Exp(-1/2*X*X/K/K);
+			double x1 = 1 - rand.NextDouble();
+			if (x2<0.5)
+			{
+				x1= x1*r;
+			}
+			else
+			{
+				x1 = r + x1*(1-r);
+			}
+            1 - rand.NextDouble();
             double gaussianRandom = Math.Sqrt(-2 * Math.Log(x1)) * Math.Sin(2 * Math.PI * x2);
             return mu + sig * gaussianRandom;
         }
