@@ -3,26 +3,19 @@ CLASSES
 =============================================================================*/
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-
-//Here are using directives we can't have on a linux machine or a website
-//The gaussian part, which is the core of this class does not need them.
-using System.Windows.Forms;
-using System.Windows.Forms.DataVisualization.Charting;
-
 namespace PythonBackup
 {
     public class GaussDistr
     {
+        //Initializing like this is the same as doing it in the constructor 
+        private static Random rand = new Random();
+
         #region Fields
         private Sensus parent;
         private int mu;
         private float sig;
         public List<int> collection;
 
-        //Initializing like this is the same as doing it in the constructor 
-        Random rand = new Random();
         #endregion
 
         public GaussDistr(Sensus parent, int mu, float sig)
@@ -44,61 +37,80 @@ namespace PythonBackup
         }
 
         //This is not a real gaussian distribution just an approximation
-        public double DrawRand(double m = 0)
+        public double DrawRand(double? min = null)
         {
-            //Create 2 random numbers (uniform distribution) in (0;1]
-            //It's the same as rand.NextDouble() but be don't want 0 (1 is accepted) because of the ln (noted Log)
-            double x2 = 1 - rand.NextDouble();
-			double X = (m-mu)/sig;
-			double K = Math.Sin(2 * Math.PI * x2);
-			double r = Math.Exp(-1/2*X*X/K/K);
-			double x1 = 1 - rand.NextDouble();
-			if (x2<0.5)
-			{
-				x1= x1*r;
-			}
-			else
-			{
-				x1 = r + x1*(1-r);
-			}
-            1 - rand.NextDouble();
-            double gaussianRandom = Math.Sqrt(-2 * Math.Log(x1)) * Math.Sin(2 * Math.PI * x2);
-            return mu + sig * gaussianRandom;
+            if (min != null)
+            {
+                min = (min.Value - mu) / sig;
+            }
+            return mu + DrawRandomNormalLaw(min) * sig;
         }
 
-        //This code should be declared in Form1 maybe but for sure not here
-        public void PlotOld(List<int> collection)
+        /// <summary>
+        /// Draws a random number from a normal law
+        /// </summary>
+        /// <param name="min">Minimum returned value</param>
+        /// <returns>Random value</returns>
+        public static double DrawRandomNormalLaw(double? min = null)
         {
-            //This code is not quite the same as the Python one. HMI are really technology specific and their implementation can
-            // be different between two technologies even when they use the same language
-
-            //Here we create windows HMI component in a class that should not contain them
-            Form form = Program.mainForm;
-            Chart chart = form.Controls.OfType<Chart>().First();
-            Series series = chart.Series.First();
-
-            //Every time you define a litteral string it should not be like that...
-            //A better way is to declare 
-            //const string blahblah = "" in Constants.cs for example
-            //An even better way is to declare it in resource file so that translation would be easier
-            series.Name = "Distribution of leaving old members";
-            foreach (int values in collection)
+            double K = Math.Sin(2 * Math.PI * rand.NextDouble());
+            //Creates a random numbers (uniform distribution) in (0;1]
+            //It's the same as rand.NextDouble() but be don't want 0 (1 is accepted) because of the ln (noted Log)
+            double r = 1 - rand.NextDouble();
+            bool opposeResult = false;
+            if (min != null)
             {
-                series.Points.AddY(values);
+                //1 side of the bell is truncated
+                double minValue = min.Value;
+                if (K < 0)
+                {
+                    K = -K;
+                }
+                double xMinTruncAbs, xMaxTruncAbs;
+                bool pickInTruncatedSide = true;
+                if (minValue < 0)
+                {
+                    xMinTruncAbs = GetLimitX1(K, -minValue);
+                    xMaxTruncAbs = 1;
+                    pickInTruncatedSide = (rand.NextDouble() > 1 / (2 - xMinTruncAbs));
+                    opposeResult = pickInTruncatedSide;
+                }
+                else
+                {
+                    xMinTruncAbs = 0;
+                    xMaxTruncAbs = GetLimitX1(K, minValue);
+                }
+                if (pickInTruncatedSide)
+                {
+                    r = xMinTruncAbs + r * (xMaxTruncAbs - xMinTruncAbs);
+                }
             }
-            series.ChartType = SeriesChartType.Line; 
-            //Defines the thickness of the line
-            series.BorderWidth = 3;
-            //Defines the color of the line
-            series.Color = Color.Blue;
-            
-            //Stretches the chart to the frame size in all directions. Here it's a bit tricky. 
-            //Each AnchorStyles (except AnchorStyles.None) value has corresponding int value that is a power of 2
-            //They form a mask, even if | is the "binary or" her we have chart.anchor ~ 15 or 1111 in binary
-            chart.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
+            double absoluteResult = Math.Sqrt(-2 * Math.Log(r)) * K;
+            return opposeResult ? -absoluteResult : absoluteResult;
+        }
 
-            chart.ChartAreas[0].AxisX.Title= "Age of members (yrs)";
-            chart.ChartAreas[0].AxisY.Title = "Frequency";
+        /// <summary>
+        /// Gets the limit value of x1 L so that L * coeffX2 is the limit acceptable value 
+        /// </summary>
+        /// <param name="coeffX2">sin(Pi * x2) with x2 in [0;1[</param>
+        /// <returns></returns>
+        private static double GetLimitX1(double coeffX2, double limit)
+        {
+            if (coeffX2 == 0)
+            {
+                return 0;
+            }
+            limit /= coeffX2;
+            return Math.Exp(-(limit * limit) / 2);
+        }
+
+        /// <summary>
+        /// Returns a random boolean
+        /// </summary>
+        /// <returns>Random boolean</returns>
+        private static bool GetRandomBoolean()
+        {
+            return rand.Next() % 2 == 1;
         }
     }
 }
