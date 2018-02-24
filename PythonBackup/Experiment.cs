@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using PythonBackup.Settings;
 
 namespace PythonBackup
 {
@@ -112,7 +113,7 @@ namespace PythonBackup
 
                 if (n + memberFlow > Constants.MaxMembers)
                 {
-                    memberFlow = (int)Math.Round(Constants.MaxMembers) - n;
+                    memberFlow = Constants.MaxMembers - n;
                 }
                 while (memberFlow > 0)
                 {
@@ -158,7 +159,7 @@ namespace PythonBackup
             if (sensus.oldCollection != null)
             {
                 sensus.gdistr.collection = sensus.oldCollection;
-                sensus.gdistr.PlotOld(sensus.oldCollection);
+                Program.MainForm.UpdateChart(sensus.oldCollection);
             }
         }
 

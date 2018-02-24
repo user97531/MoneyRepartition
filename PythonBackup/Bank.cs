@@ -1,4 +1,6 @@
-﻿namespace PythonBackup
+﻿using PythonBackup.Settings;
+
+namespace PythonBackup
 {
     public class Bank
     {
